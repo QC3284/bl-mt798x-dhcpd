@@ -132,6 +132,11 @@ config PHY_AQUANTIA_FW_NAME
 	help
 		Firmware filename.
 
+config PHY_AS21XXX
+    bool "Aeonsemi AS21XXX Ethernet PHYs support"
+    select PHY_GIGE
+	select PHYLIB_10G
+
 config PHY_ATHEROS
 	bool "Atheros Ethernet PHYs support"
 
