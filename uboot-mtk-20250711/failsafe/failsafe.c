@@ -17,6 +17,7 @@
 #include <net/mtk_dhcpd.h>
 #include <u-boot/md5.h>
 #include <linux/stringify.h>
+#include <linux/string.h>
 #include <dm/ofnode.h>
 #include <vsprintf.h>
 #include <version_string.h>
@@ -39,6 +40,7 @@ static u32 upload_data_id;
 static const void *upload_data;
 static size_t upload_size;
 static bool upgrade_success;
+static bool auto_action_pending;
 static failsafe_fw_t fw_type;
 static bool failsafe_httpd_running;
 
@@ -134,6 +136,20 @@ size_t json_escape(char *dst, size_t dst_sz, const char *src)
 
 	dst[di] = '\0';
 	return di;
+}
+
+static bool failsafe_auto_reboot_enabled(void)
+{
+	const char *val = env_get("failsafe_auto_reboot");
+
+	if (!val || !val[0])
+		return IS_ENABLED(CONFIG_WEBUI_FAILSAFE_UI_OLD);
+
+	if (!strcmp(val, "1") || !strcasecmp(val, "true") ||
+	    !strcasecmp(val, "yes") || !strcasecmp(val, "on"))
+		return true;
+
+	return false;
 }
 
 static int output_plain_file(struct httpd_response *response,
@@ -615,10 +631,12 @@ static void result_handler(enum httpd_uri_handler_status status,
 		st = response->session_data;
 
 		upgrade_success = !st->ret;
+		auto_action_pending = upgrade_success &&
+			(fw_type == FW_TYPE_INITRD || failsafe_auto_reboot_enabled());
 
 		free(response->session_data);
 
-		if (upgrade_success)
+		if (auto_action_pending)
 			mtk_tcp_close_all_conn();
 	}
 }
@@ -816,7 +834,7 @@ static int do_httpd(struct cmd_tbl *cmdtp, int flag, int argc,
 
 	ret = start_web_failsafe();
 
-	if (upgrade_success) {
+	if (auto_action_pending) {
 		if (fw_type == FW_TYPE_INITRD)
 			boot_from_mem((ulong)upload_data);
 		else
