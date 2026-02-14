@@ -495,7 +495,7 @@ input[type="file"] {
 
 .sysinfo {
     width: 100%;
-    max-width: var(--card-w);
+    max-width: 220px;
     margin: 0 auto 10px;
     padding: 10px 12px;
     border-radius: 12px;
@@ -509,9 +509,14 @@ input[type="file"] {
     overflow-wrap: anywhere;
 }
 
+.sysinfo.sysinfo-expanded {
+    max-width: var(--card-w);
+}
+
 .sysinfo-summary {
     display: grid;
     gap: 4px;
+    text-align: center;
 }
 
 .sysinfo-line {
@@ -659,6 +664,7 @@ ul {
     transition: width var(--anim);
 }
 
+#filename,
 #md5,
 #size,
 #mtd {
@@ -667,6 +673,17 @@ ul {
     max-width: 520px;
     margin: 0 auto;
     text-align: left;
+}
+
+#filename {
+    text-align: center;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.filename-label,
+.filename-value {
+    display: block;
 }
 
 #upgrade,

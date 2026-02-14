@@ -518,6 +518,7 @@ function renderSysInfo() {
     f = i.ram || {};
 
     while (n.firstChild) n.removeChild(n.firstChild);
+    n.classList.remove("sysinfo-expanded");
 
     var summary = document.createElement("div");
     summary.className = "sysinfo-summary";
@@ -628,6 +629,12 @@ function renderSysInfo() {
     if (extra.childNodes.length) {
         details.appendChild(extra);
         n.appendChild(details);
+
+        var toggleExpanded = function () {
+            details.open ? n.classList.add("sysinfo-expanded") : n.classList.remove("sysinfo-expanded");
+        };
+        details.addEventListener("toggle", toggleExpanded);
+        toggleExpanded();
     }
 }
 
@@ -739,13 +746,13 @@ function getversion() {
 
 function upload(n) {
     var o = document.getElementById("file").files[0],
-        u, f, e, r, i, s;
-    o && (u = document.getElementById("form"), u && (u.style.display = "none"), f = document.getElementById("hint"), f && (f.style.display = "none"), e = document.getElementById("bar"), e && (e.style.display = "block"), r = new FormData, r.append(n, o), i = document.getElementById("mtd_layout_label"), i && i.options.length > 0 && (s = i.selectedIndex, r.append("mtd_layout", i.options[s].value)), ajax({
+        u, f, e, r, i, s, a;
+    o && (a = o.name || "", u = document.getElementById("form"), u && (u.style.display = "none"), f = document.getElementById("hint"), f && (f.style.display = "none"), e = document.getElementById("bar"), e && (e.style.display = "block"), r = new FormData, r.append(n, o), i = document.getElementById("mtd_layout_label"), i && i.options.length > 0 && (s = i.selectedIndex, r.append("mtd_layout", i.options[s].value)), ajax({
         url: "/upload",
         data: r,
         done: function (n) {
-            var i, r, u, f, e;
-            n == "fail" ? location = "/fail.html" : (i = n.split(" "), r = document.getElementById("size"), r && (r.style.display = "block", r.innerHTML = t("label.size") + i[0]), u = document.getElementById("md5"), u && (u.style.display = "block", u.innerHTML = t("label.md5") + i[1]), f = document.getElementById("mtd"), f && i[2] && (f.style.display = "block", f.innerHTML = t("label.mtd") + i[2]), e = document.getElementById("upgrade"), e && (e.style.display = "block"))
+            var i, r, u, f, e, l;
+            n == "fail" ? location = "/fail.html" : (i = n.split(" "), l = document.getElementById("filename"), l && a && (l.style.display = "block", l.innerHTML = "<span class=\"filename-label\">" + t("label.file") + "</span><span class=\"filename-value\">" + a + "</span>"), r = document.getElementById("size"), r && (r.style.display = "block", r.innerHTML = t("label.size") + i[0]), u = document.getElementById("md5"), u && (u.style.display = "block", u.innerHTML = t("label.md5") + i[1]), f = document.getElementById("mtd"), f && i[2] && (f.style.display = "block", f.innerHTML = t("label.mtd") + i[2]), e = document.getElementById("upgrade"), e && (e.style.display = "block"))
         },
         progress: function (n) {
             if (n.total) {
