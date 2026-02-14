@@ -31,6 +31,9 @@
 #ifdef CONFIG_MTK_BOOTMENU_MMC
 #include "../board/mediatek/common/mmc_helper.h"
 #endif
+#ifdef CONFIG_PARTITIONS
+#include <part.h>
+#endif
 
 static u32 upload_data_id;
 static const void *upload_data;
@@ -182,14 +185,13 @@ static void sysinfo_handler(enum httpd_uri_handler_status status,
 {
 	char *buf;
 	int len = 0;
-	int left = 4096;
+	int left = 8192;
 	off_t ram_size = 0;
-	ofnode root, cpus, cpu;
+	ofnode root;
 	const char *board_model = NULL;
 	const char *board_compat = NULL;
-	const char *cpu_compat = NULL;
-	u64 cpu_clk_hz = 0;
-	char esc_board_model[256], esc_board_compat[256], esc_cpu_compat[256];
+	const char *build_variant = NULL;
+	char esc_board_model[256], esc_board_compat[256], esc_build_variant[256];
 
 	(void)request;
 
@@ -230,38 +232,139 @@ static void sysinfo_handler(enum httpd_uri_handler_status status,
 			board_model = env_get("board");
 	}
 
-	/* CPU info from DT: /cpus/<first cpu node>/compatible, clock-frequency */
-	cpus = ofnode_path("/cpus");
-	if (ofnode_valid(cpus) && ofnode_get_child_count(cpus))
-	{
-		ofnode_for_each_subnode(cpu, cpus)
-		{
-			cpu_compat = ofnode_read_string(cpu, "compatible");
-			if (!ofnode_read_u64(cpu, "clock-frequency", &cpu_clk_hz) && cpu_clk_hz)
-				break;
-			if (cpu_compat && cpu_compat[0])
-				break;
-		}
-	}
-
 	/* RAM size from global data */
 	if (gd)
 		ram_size = (off_t)gd->ram_size;
 
+	build_variant = CONFIG_WEBUI_FAILSAFE_BUILD_VARIANT;
+	if (build_variant && !build_variant[0])
+		build_variant = NULL;
+
 	json_escape(esc_board_model, sizeof(esc_board_model), board_model ? board_model : "");
 	json_escape(esc_board_compat, sizeof(esc_board_compat), board_compat ? board_compat : "");
-	json_escape(esc_cpu_compat, sizeof(esc_cpu_compat), cpu_compat ? cpu_compat : "");
+	json_escape(esc_build_variant, sizeof(esc_build_variant), build_variant ? build_variant : "");
 
 	len += snprintf(buf + len, left - len, "{");
 	len += snprintf(buf + len, left - len,
 					"\"board\":{\"model\":\"%s\",\"compatible\":\"%s\"},",
 					esc_board_model, esc_board_compat);
 	len += snprintf(buf + len, left - len,
-					"\"cpu\":{\"compatible\":\"%s\",\"clock_hz\":%llu},",
-					esc_cpu_compat, (unsigned long long)cpu_clk_hz);
-	len += snprintf(buf + len, left - len,
-					"\"ram\":{\"size\":%llu}",
+					"\"ram\":{\"size\":%llu},",
 					(unsigned long long)ram_size);
+	len += snprintf(buf + len, left - len,
+					"\"build_variant\":\"%s\",",
+					esc_build_variant);
+
+	len += snprintf(buf + len, left - len, "\"storage\":{");
+
+#ifdef CONFIG_MEDIATEK_MULTI_MTD_LAYOUT
+	{
+		const char *cur = get_mtd_layout_label();
+		char esc_cur[128];
+		const char *cur_parts = NULL;
+		char esc_cur_parts[512];
+		ofnode node, layout;
+		bool first = true;
+
+		json_escape(esc_cur, sizeof(esc_cur), cur ? cur : "");
+		len += snprintf(buf + len, left - len,
+				"\"mtd_layout\":{\"current\":\"%s\",",
+				esc_cur);
+
+		node = ofnode_path("/mtd-layout");
+		if (ofnode_valid(node) && ofnode_get_child_count(node)) {
+			len += snprintf(buf + len, left - len, "\"layouts\":[");
+			ofnode_for_each_subnode(layout, node) {
+				const char *label = ofnode_read_string(layout, "label");
+				const char *parts = ofnode_read_string(layout, "mtdparts");
+				char esc_label[128];
+				char esc_parts[512];
+
+				if (!label)
+					continue;
+				json_escape(esc_label, sizeof(esc_label), label);
+				json_escape(esc_parts, sizeof(esc_parts), parts ? parts : "");
+				if (cur && !strcmp(label, cur))
+					cur_parts = parts;
+				len += snprintf(buf + len, left - len,
+					"%s{\"label\":\"%s\",\"parts\":\"%s\"}",
+					first ? "" : ",", esc_label, esc_parts);
+				first = false;
+			}
+			len += snprintf(buf + len, left - len, "],");
+		} else {
+			len += snprintf(buf + len, left - len, "\"layouts\":[],");
+		}
+
+		json_escape(esc_cur_parts, sizeof(esc_cur_parts), cur_parts ? cur_parts : "");
+		len += snprintf(buf + len, left - len,
+				"\"current_parts\":\"%s\"},",
+				esc_cur_parts);
+	}
+#else
+	len += snprintf(buf + len, left - len, "\"mtd_layout\":null,");
+#endif
+
+	len += snprintf(buf + len, left - len, "\"mmc\":{");
+#ifdef CONFIG_MTK_BOOTMENU_MMC
+	{
+		struct mmc *mmc;
+		struct blk_desc *bd;
+		bool present;
+		char esc_vendor[128], esc_product[128];
+
+		mmc = _mmc_get_dev(CONFIG_MTK_BOOTMENU_MMC_DEV_INDEX, 0, false);
+		bd = mmc ? mmc_get_blk_desc(mmc) : NULL;
+		present = mmc && bd && bd->type != DEV_TYPE_UNKNOWN;
+
+		if (present) {
+			json_escape(esc_vendor, sizeof(esc_vendor), bd->vendor ? bd->vendor : "");
+			json_escape(esc_product, sizeof(esc_product), bd->product ? bd->product : "");
+			len += snprintf(buf + len, left - len,
+				"\"present\":true,\"vendor\":\"%s\",\"product\":\"%s\",\"blksz\":%lu,\"size\":%llu,",
+				esc_vendor, esc_product, (unsigned long)bd->blksz,
+				(unsigned long long)mmc->capacity_user);
+		} else {
+			len += snprintf(buf + len, left - len, "\"present\":false,");
+		}
+
+		len += snprintf(buf + len, left - len, "\"parts\":[");
+#ifdef CONFIG_PARTITIONS
+		if (present) {
+			struct disk_partition dpart;
+			u32 i = 1;
+			bool first = true;
+
+			part_init(bd);
+			while (len < left - 128) {
+				if (part_get_info(bd, i, &dpart))
+					break;
+
+				if (!dpart.name[0]) {
+					i++;
+					continue;
+				}
+
+				len += snprintf(buf + len, left - len,
+					"%s{\"name\":\"%s\",\"start\":%llu,\"size\":%llu}",
+					first ? "" : ",",
+					dpart.name,
+					(unsigned long long)dpart.start * dpart.blksz,
+					(unsigned long long)dpart.size * dpart.blksz);
+
+				first = false;
+				i++;
+			}
+		}
+#endif
+		len += snprintf(buf + len, left - len, "]");
+	}
+#else
+	len += snprintf(buf + len, left - len, "\"present\":false,\"parts\":[]");
+#endif
+	len += snprintf(buf + len, left - len, "}");
+
+	len += snprintf(buf + len, left - len, "}");
 	len += snprintf(buf + len, left - len, "}");
 
 	response->status = HTTP_RESP_STD;

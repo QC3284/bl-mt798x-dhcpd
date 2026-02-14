@@ -507,7 +507,7 @@ function updateGptNavVisibility() {
 }
 
 function renderSysInfo() {
-    var n = document.getElementById("sysinfo"), i, r, u, f, e;
+    var n = document.getElementById("sysinfo"), i, u, f;
     if (!n) return;
     i = APP_STATE.sysinfo;
     if (!i) {
@@ -516,11 +516,119 @@ function renderSysInfo() {
     }
     u = i.board || {};
     f = i.ram || {};
-    e = [];
-    e.push(t("sysinfo.board") + " " + (u.model || t("sysinfo.unknown")));
-    f.size !== undefined && f.size !== null && f.size !== 0 ? e.push(t("sysinfo.ram") + " " + bytesToHuman(f.size)) : e.push(t("sysinfo.ram") + " " + t("sysinfo.unknown"));
 
-    n.textContent = e.join("\n")
+    while (n.firstChild) n.removeChild(n.firstChild);
+
+    var summary = document.createElement("div");
+    summary.className = "sysinfo-summary";
+
+    var boardLine = document.createElement("div");
+    boardLine.className = "sysinfo-line";
+    boardLine.textContent = t("sysinfo.board") + " " + (u.model || t("sysinfo.unknown"));
+    summary.appendChild(boardLine);
+
+    var ramLine = document.createElement("div");
+    ramLine.className = "sysinfo-line";
+    ramLine.textContent = t("sysinfo.ram") + " " + (f.size !== undefined && f.size !== null && f.size !== 0 ? bytesToHuman(f.size) : t("sysinfo.unknown"));
+    summary.appendChild(ramLine);
+
+    if (i.storage && i.storage.mtd_layout) {
+        var mtdSummary = i.storage.mtd_layout || {};
+        if (mtdSummary.current) {
+            var curLayoutLine = document.createElement("div");
+            curLayoutLine.className = "sysinfo-line";
+            curLayoutLine.textContent = t("sysinfo.mtd.current", "MTD layout") + " " + mtdSummary.current;
+            summary.appendChild(curLayoutLine);
+        }
+    }
+
+    n.appendChild(summary);
+
+    var details = document.createElement("details");
+    details.className = "sysinfo-details";
+
+    var summaryNode = document.createElement("summary");
+    summaryNode.textContent = t("sysinfo.more", "More info");
+    details.appendChild(summaryNode);
+
+    var extra = document.createElement("div");
+    extra.className = "sysinfo-extra";
+
+    if (i.storage && i.storage.mtd_layout) {
+        if (mtdSummary.current_parts) {
+            var curPartsLine = document.createElement("div");
+            curPartsLine.className = "sysinfo-line sysinfo-mtdparts";
+            curPartsLine.textContent = t("sysinfo.mtd.parts", "MTD parts") + " " + mtdSummary.current_parts;
+            extra.appendChild(curPartsLine);
+        }
+    }
+
+    if (i.build_variant) {
+        var variantLine = document.createElement("div");
+        variantLine.className = "sysinfo-line";
+        variantLine.textContent = t("sysinfo.variant", "Variant") + " " + i.build_variant;
+        extra.appendChild(variantLine);
+    }
+
+    if (u.compatible) {
+        var compatLine = document.createElement("div");
+        compatLine.className = "sysinfo-line";
+        compatLine.textContent = t("sysinfo.compat", "Compatible") + " " + u.compatible;
+        extra.appendChild(compatLine);
+    }
+
+    if (i.storage && i.storage.mtd_layout) {
+        var mtd = i.storage.mtd_layout || {};
+        var layouts = mtd.layouts || [];
+        if (layouts && layouts.length) {
+            var layoutTitle = document.createElement("div");
+            layoutTitle.className = "sysinfo-line sysinfo-section";
+            layoutTitle.textContent = t("sysinfo.mtd.layouts", "MTD layouts");
+            extra.appendChild(layoutTitle);
+
+            var layoutList = document.createElement("ul");
+            layoutList.className = "sysinfo-list";
+            for (var li = 0; li < layouts.length; li++) {
+                var item = layouts[li] || {};
+                var entry = document.createElement("li");
+                var parts = item.parts ? " " + item.parts : "";
+                entry.textContent = (item.label || "-") + ":" + parts;
+                layoutList.appendChild(entry);
+            }
+            extra.appendChild(layoutList);
+        }
+    }
+
+    if (i.storage && i.storage.mmc && i.storage.mmc.present) {
+        var mmc = i.storage.mmc;
+        var mmcTitle = document.createElement("div");
+        mmcTitle.className = "sysinfo-line sysinfo-section";
+        mmcTitle.textContent = t("sysinfo.mmc", "MMC partitions");
+        extra.appendChild(mmcTitle);
+
+        if (mmc.parts && mmc.parts.length) {
+            var list = document.createElement("ul");
+            list.className = "sysinfo-list";
+            for (var iPart = 0; iPart < mmc.parts.length; iPart++) {
+                var p = mmc.parts[iPart];
+                var li = document.createElement("li");
+                var sizeTxt = p.size ? bytesToHuman(p.size) : t("sysinfo.unknown");
+                li.textContent = (p.name || "-") + " (" + sizeTxt + ")";
+                list.appendChild(li);
+            }
+            extra.appendChild(list);
+        } else {
+            var empty = document.createElement("div");
+            empty.className = "sysinfo-line";
+            empty.textContent = t("sysinfo.mmc.none", "No partitions");
+            extra.appendChild(empty);
+        }
+    }
+
+    if (extra.childNodes.length) {
+        details.appendChild(extra);
+        n.appendChild(details);
+    }
 }
 
 function getSysInfo() {

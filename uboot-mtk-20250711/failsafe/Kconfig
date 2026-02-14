@@ -40,6 +40,13 @@ config WEBUI_FAILSAFE_ADVANCED
 	help
 	  Enable advanced features in the failsafe Web UI.
 
+config WEBUI_FAILSAFE_BUILD_VARIANT
+	string "Failsafe build variant tag"
+	default ""
+	depends on WEBUI_FAILSAFE
+	help
+	  Optional build variant string shown in failsafe sysinfo.
+
 config WEBUI_FAILSAFE_FACTORY
 	bool "Enable Factory upgrade (DANGEROUS)"
 	default y
