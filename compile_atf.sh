@@ -2,7 +2,7 @@
 
 TOOLCHAIN=aarch64-linux-gnu-
 
-ATFCFG_DIR="${ATFCFG_DIR:-atf_cfg}"
+ATFCFG_DIR="${ATFCFG_DIR:-mt798x_atf}"
 OUTPUT_DIR="${OUTPUT_DIR:-output_bl2}"
 
 VERSION=${VERSION:-2025}
@@ -61,8 +61,10 @@ fi
 for cfg_file in $CONFIG_LIST; do
     cfg_name=$(basename "$cfg_file")
     cfg_base=${cfg_name%.config}
-    # soc=$(echo "$cfg_base" | sed -e 's/^atf-//' -e 's/-.*$//')
-    soc=$(echo "$cfg_base" | cut -d'-' -f2)
+    # Example filenames:
+    #   mt7981-ddr3-bga-ram.config  -> soc=mt7981
+    #   atf-mt7986-ddr4-ram.config  -> soc=mt7986
+    soc=$(echo "$cfg_base" | sed -e 's/^atf-//' | cut -d'-' -f1)
     echo "Building BL2: $cfg_name (soc=$soc)"
     rm -rf "$ATF_DIR/build"
     mkdir -p "$ATF_DIR/build"
@@ -78,7 +80,7 @@ for cfg_file in $CONFIG_LIST; do
         echo "----------------------------------------"
     else
         echo "bl2 build fail for $cfg_name!"
-    echo "----------------------------------------"
+        echo "----------------------------------------"
         exit 1
     fi
 
