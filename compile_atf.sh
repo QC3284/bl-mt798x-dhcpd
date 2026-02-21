@@ -28,17 +28,6 @@ if [ ! -d "$ATF_DIR" ]; then
     exit 1
 fi
 
-if [ "$CLEAN" = "1" ]; then
-    if [ -d "$ATF_DIR/build" ]; then
-        rm -rf "$ATF_DIR/build"
-    else
-        echo "$ATF_DIR/build does not exist."
-        exit 1
-    fi
-    echo "Cleaned $ATF_DIR/build"
-    exit 0
-fi
-
 command -v "${TOOLCHAIN}gcc" >/dev/null 2>&1
 [ "$?" != "0" ] && { echo "${TOOLCHAIN}gcc not found!"; exit 1; }
 export CROSS_COMPILE="$TOOLCHAIN"

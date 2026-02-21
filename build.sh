@@ -27,6 +27,27 @@ else
     exit 1
 fi
 
+if [ "$CLEAN" = "1" ]; then
+	if [ -f "$UBOOT_DIR/.config" ]; then
+		echo "Cleaning $UBOOT_DIR"
+		cd "$UBOOT_DIR"
+		make distclean
+		cd ..
+	else
+		echo "$UBOOT_DIR/.config does not exist."
+	fi
+    if [ -d "$ATF_DIR/build" ]; then
+		echo "Cleaning $ATF_DIR" 
+		cd "$ATF_DIR"
+		make distclean
+		cd ..
+    else
+        echo "$ATF_DIR/build does not exist."
+    fi
+	echo "Clean done."
+    exit 0
+fi
+
 if [ -z "$BOARD" ]; then
 	echo "Usage: BOARD=<board name> [SOC=mt7981|mt7986|mt7987|mt7988] VERSION=[2022|2023|2024|2025] VARIANT=[default|ubootmod|nonmbm] $0"
 	echo "eg: BOARD=cmcc_a10 $0"
