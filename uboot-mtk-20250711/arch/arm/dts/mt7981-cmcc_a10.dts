@@ -16,7 +16,7 @@
 	};
 
 	config {
-		bootcmd = "mtkboardboot";
+		bootcmd = "if mtkboardboot; then exit; fi; httpd";
 		blink_led = "red:status";
 		system_led = "green:status";
 	};
@@ -41,6 +41,50 @@
 			// mtd layout for lean qwrt
 			mtdids = "nmbm0=nmbm0";
 			mtdparts = "nmbm0:1024k(bl2),512k(u-boot-env),2048k(Factory),2048k(fip),1024k(rsv0),110M(ubi)";
+		};
+
+		layout@3 {
+			label = "openwrt-firmware";
+			// dual system layout: ubi + ubi2 (each 56MiB)
+			mtdids = "nmbm0=nmbm0";
+			mtdparts = "nmbm0:1024k(bl2),512k(u-boot-env),2048k(Factory),2048k(fip),57344k(ubi),57344k(ubi2)";
+			boot_part = "ubi";
+			factory_part = "ubi";
+			sysupgrade_kernel_ubipart = "ubi";
+			sysupgrade_rootfs_ubipart = "ubi";
+		};
+
+		layout@4 {
+			label = "openwrt-firmware2";
+			// dual system layout: ubi + ubi2 (boot from ubi2)
+			mtdids = "nmbm0=nmbm0";
+			mtdparts = "nmbm0:1024k(bl2),512k(u-boot-env),2048k(Factory),2048k(fip),57344k(ubi),57344k(ubi2)";
+			boot_part = "ubi2";
+			factory_part = "ubi2";
+			sysupgrade_kernel_ubipart = "ubi2";
+			sysupgrade_rootfs_ubipart = "ubi2";
+		};
+
+		layout@5 {
+			label = "openwrt-kernel-rootfs-a";
+			// A/B kernel+rootfs with shared ubifs (data)
+			mtdids = "nmbm0=nmbm0";
+			mtdparts = "nmbm0:1024k(bl2),512k(u-boot-env),2048k(Factory),2048k(fip),4096k(kernel),4096k(kernel_1),32768k(rootfs),32768k(rootfs_1),40960k(ubifs)";
+			boot_part = "kernel";
+			factory_part = "kernel";
+			sysupgrade_kernel_ubipart = "kernel";
+			sysupgrade_rootfs_ubipart = "rootfs";
+		};
+
+		layout@6 {
+			label = "openwrt-kernel-rootfs-b";
+			// A/B kernel+rootfs with shared ubifs (data)
+			mtdids = "nmbm0=nmbm0";
+			mtdparts = "nmbm0:1024k(bl2),512k(u-boot-env),2048k(Factory),2048k(fip),4096k(kernel),4096k(kernel_1),32768k(rootfs),32768k(rootfs_1),40960k(ubifs)";
+			boot_part = "kernel_1";
+			factory_part = "kernel_1";
+			sysupgrade_kernel_ubipart = "kernel_1";
+			sysupgrade_rootfs_ubipart = "rootfs_1";
 		};
 	};
 
