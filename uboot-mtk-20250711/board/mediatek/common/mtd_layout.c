@@ -34,9 +34,26 @@ static ofnode ofnode_get_mtd_layout(const char *layout_label)
 const char *get_mtd_layout_label(void)
 {
 	const char *layout_label = NULL;
+	const char *priority_root = NULL;
 
 	if (gd->flags & GD_FLG_ENV_READY)
 		layout_label = env_get("mtd_layout_label");
+
+	if (!layout_label && (gd->flags & GD_FLG_ENV_READY))
+		priority_root = env_get("priority_root");
+
+	if (!layout_label && priority_root) {
+		if (!strcmp(priority_root, "ubi"))
+			layout_label = "openwrt-firmware";
+		else if (!strcmp(priority_root, "ubi2"))
+			layout_label = "openwrt-firmware2";
+		else if (!strcmp(priority_root, "kernel") ||
+			 !strcmp(priority_root, "rootfs"))
+			layout_label = "openwrt-kernel-rootfs-a";
+		else if (!strcmp(priority_root, "kernel_1") ||
+			 !strcmp(priority_root, "rootfs_1"))
+			layout_label = "openwrt-kernel-rootfs-b";
+	}
 
 	if (!layout_label)
 		layout_label = "default";
