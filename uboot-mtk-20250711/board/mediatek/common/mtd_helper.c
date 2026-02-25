@@ -1357,6 +1357,7 @@ static int ubi_dual_boot(struct mtd_info *mtd, bool do_boot)
 static int boot_from_ubi(struct mtd_info *mtd, bool do_boot)
 {
 	const char *volname_primary, *volname_secondary;
+	const char *env_boot_vol;
 	ulong data_load_addr = get_load_addr();
 	int ret;
 
@@ -1375,12 +1376,34 @@ static int boot_from_ubi(struct mtd_info *mtd, bool do_boot)
 		volname_secondary = PART_FIT_NAME;
 	}
 
+	env_boot_vol = env_get("boot_ubi_vol");
+	if (env_boot_vol && env_boot_vol[0]) {
+		if (!strcmp(env_boot_vol, volname_secondary)) {
+			const char *tmp = volname_primary;
+			volname_primary = volname_secondary;
+			volname_secondary = tmp;
+			printf("Boot volume override: %s (fallback: %s)\n",
+			       volname_primary, volname_secondary);
+		} else if (!strcmp(env_boot_vol, volname_primary)) {
+			printf("Boot volume override: %s (fallback: %s)\n",
+			       volname_primary, volname_secondary);
+		} else {
+			printf("Warning: boot_ubi_vol '%s' is invalid, using default order\n",
+			       env_boot_vol);
+		}
+	}
+
 	ret = read_ubi_volume(volname_primary, (void *)data_load_addr, 0);
 	if (ret) {
+		printf("Failed to read UBI volume '%s' (%d), trying '%s'\n",
+		       volname_primary, ret, volname_secondary);
 		ret = read_ubi_volume(volname_secondary,
 				      (void *)data_load_addr, 0);
-		if (ret)
+		if (ret) {
+			printf("Failed to read UBI volume '%s' (%d)\n",
+			       volname_secondary, ret);
 			return ret;
+		}
 
 		ubi_image_vol = volname_secondary;
 	} else {
