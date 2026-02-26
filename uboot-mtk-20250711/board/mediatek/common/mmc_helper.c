@@ -1207,6 +1207,7 @@ static int mmc_dual_boot(u32 dev, bool do_boot)
 int mmc_boot_image(u32 dev, bool do_boot)
 {
 	const char *part_primary, *part_secondary;
+	const char *priority_root;
 	int ret;
 
 	bootargs_reset();
@@ -1215,7 +1216,16 @@ int mmc_boot_image(u32 dev, bool do_boot)
 	if (IS_ENABLED(CONFIG_MTK_DUAL_BOOT))
 		return mmc_dual_boot(dev, do_boot);
 
-	if (strcmp(CONFIG_MTK_DEFAULT_FIT_BOOT_CONF, "")) {
+	priority_root = env_get("priority_root");
+	if (priority_root && (!strcmp(priority_root, "kernel_1") ||
+			       !strcmp(priority_root, "rootfs_1"))) {
+		part_primary = "kernel_1";
+		part_secondary = PART_KERNEL_NAME;
+	} else if (priority_root && (!strcmp(priority_root, "kernel") ||
+			      !strcmp(priority_root, "rootfs"))) {
+		part_primary = PART_KERNEL_NAME;
+		part_secondary = "kernel_1";
+	} else if (strcmp(CONFIG_MTK_DEFAULT_FIT_BOOT_CONF, "")) {
 		part_primary = PART_PRODUCTION_NAME;
 		part_secondary = PART_KERNEL_NAME;
 	} else {
