@@ -827,6 +827,23 @@ ul {
     white-space: pre-wrap;
 }
 
+.env-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.env-toolbar a {
+    color: var(--muted);
+}
+
+.env-toolbar .sep {
+    opacity: .75;
+}
+
 @keyframes brandIn {
     to {
         opacity: 1;
