@@ -9,6 +9,7 @@ VERSION=${VERSION:-2025}
 VARIANT=${VARIANT:-default}
 fixedparts=${FIXED_MTDPARTS:-1}
 multilayout=${MULTI_LAYOUT:-0}
+simg=${SIMG:-0}
 
 if [ "$VERSION" = "2022" ]; then
     UBOOT_DIR=uboot-mtk-20220606
@@ -22,6 +23,9 @@ elif [ "$VERSION" = "2024" ]; then
 elif [ "$VERSION" = "2025" ]; then
     UBOOT_DIR=uboot-mtk-20250711
     ATF_DIR=atf-20250711
+elif [ "$VERSION" = "2026" ]; then
+    UBOOT_DIR=uboot-mtk-20260123
+    ATF_DIR=atf-20260123
 else
     echo "Error: Unsupported VERSION. Please specify VERSION=2022/2023/2024/2025."
     exit 1
@@ -203,8 +207,8 @@ else
     exit 1
 fi
 
+# No fixed-mtdparts or multilayout for EMMC
 if grep -Eq "CONFIG_FLASH_DEVICE_EMMC=y|_BOOT_DEVICE_EMMC=y" "$ATF_CFG_PATH" ; then
-	# No fixed-mtdparts or multilayout for EMMC
 	fixedparts=0
 	multilayout=0
 fi
@@ -223,11 +227,12 @@ done
 
 echo "VERSION: $VERSION"
 echo "VARIANT: $VARIANT"
-echo "ATF dir: $ATF_DIR"
-echo "ATF cfg: $ATF_CFG_PATH"
-echo "U-Boot dir: $UBOOT_DIR"
-echo "U-Boot cfg: $UBOOT_CFG_PATH"
-echo "Building for: ${SOC}_${BOARD}, fixed-mtdparts: $fixedparts, multi-layout: $multilayout"
+echo "TARGET: ${SOC}_${BOARD}"
+echo "ATF Dir: $ATF_DIR"
+echo "U-Boot Dir: $UBOOT_DIR"
+echo "ATF CFG: $ATF_CFG_PATH"
+echo "U-Boot CFG: $UBOOT_CFG_PATH"
+echo "Features: fixed-mtdparts: $fixedparts, multi-layout: $multilayout, simg: $simg"
 echo "======================================================================"
 
 echo "Build u-boot..."
@@ -239,8 +244,12 @@ if [ "$fixedparts" = "1" ]; then
 	echo "CONFIG_MTK_FIXED_MTD_MTDPARTS=y" >> "$UBOOT_DIR/.config"
 fi
 if [ -n "$VARIANT" ]; then
-	# echo "CONFIG_WEBUI_FAILSAFE_BUILD_VARIANT=\"${VARIANT}\"" >> "$UBOOT_DIR/.config"
+	echo "Build u-boot with variant: $VARIANT"
 	echo "CONFIG_WEBUI_FAILSAFE_BUILD_VARIANT=\"$(echo "$VARIANT" | tr '[:upper:]' '[:lower:]')\"" >> "$UBOOT_DIR/.config"
+fi
+if [ "$simg" = "1" ]; then
+	echo "Build u-boot with failsafe simg support!"
+	echo "CONFIG_WEBUI_FAILSAFE_SIMG=y" >> "$UBOOT_DIR/.config"
 fi
 make -C "$UBOOT_DIR" olddefconfig
 make -C "$UBOOT_DIR" clean
