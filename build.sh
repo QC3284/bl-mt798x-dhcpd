@@ -2,7 +2,8 @@
 
 AUTHOR="Yuzhii"
 
-TOOLCHAIN=aarch64-linux-gnu-
+TOOLCHAIN_ARM=arm-linux-gnueabi-
+TOOLCHAIN_AARCH64=aarch64-linux-gnu-
 
 # Default selection
 VERSION=${VERSION:-2025}
@@ -70,19 +71,6 @@ if [ -z "$BOARD" ]; then
 	exit 1
 fi
 
-echo "======================================================================"
-echo "Checking environment..."
-echo "======================================================================"
-
-echo "Trying python3..."
-command -v python3
-[ "$?" != "0" ] && { echo "Error: Python3 is not installed on this system."; exit 0; }
-
-echo "Trying cross compiler..."
-command -v "${TOOLCHAIN}gcc"
-[ "$?" != "0" ] && { echo "${TOOLCHAIN}gcc not found!"; exit 0; }
-export CROSS_COMPILE="$TOOLCHAIN"
-
 # Config Dir
 CONFIGS_DIR_DEFAULT="configs"
 CONFIGS_DIR_FIT="configs-fit"
@@ -141,6 +129,28 @@ if [ -z "$SOC" ]; then
 		exit 1
 	fi
 fi
+
+echo "======================================================================"
+echo "Checking environment..."
+echo "======================================================================"
+
+echo "Trying python3..."
+command -v python3
+[ "$?" != "0" ] && { echo "Error: Python3 is not installed on this system."; exit 0; }
+
+if [ -z "$TOOLCHAIN" ]; then
+	if [ "$SOC" = "mt7629" ]; then
+		TOOLCHAIN=$TOOLCHAIN_ARM
+	else
+		TOOLCHAIN=$TOOLCHAIN_AARCH64
+	fi
+	echo "Using toolchain $TOOLCHAIN for SOC $SOC"
+fi
+
+echo "Trying cross compiler..."
+command -v "${TOOLCHAIN}gcc"
+[ "$?" != "0" ] && { echo "${TOOLCHAIN}gcc not found!"; exit 0; }
+export CROSS_COMPILE="$TOOLCHAIN"
 
 ATF_CFG_SOURCE="${SOC}_${BOARD}_defconfig"
 UBOOT_CFG_SOURCE="${SOC}_${BOARD}_defconfig"

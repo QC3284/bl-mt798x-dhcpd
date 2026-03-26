@@ -48,6 +48,8 @@ You can configure the features you need.
 sudo apt install gcc-aarch64-linux-gnu build-essential flex bison libssl-dev device-tree-compiler qemu-user-static
 ```
 
+> If you want to build for arm v7l devices, you also need to install `gcc-arm-linux-gnueabi`
+
 ## Build
 
 example:
