@@ -181,6 +181,12 @@ then will generate BL2 in the `output` directory. Normally, it will generate ram
 
 ### Overclocking profiles
 
+Adujsting ARMPLL frequency is a **very dangerous** operation.
+
+**It may cause some issues if you don't know what you are doing, and may cause your device to be bricked!**
+
+So it's default to the stock frequency for safety, but you can enable the OC profiles to adjust the ARMPLL frequency, but please be careful when using it.
+
 - For mt7981, now support OC to 1.4GHz~1.8GHz, and the OC profiles are in the `mt798x_atf/mt7981` directory.
 
   e.g. to build the 1.6GHz OC BL2 you need configure:
@@ -197,14 +203,14 @@ then will generate BL2 in the `output` directory. Normally, it will generate ram
   MT7986_ARMPLL_FREQ_2300=y
   ```
 
-> Limit each adjustment to 100MHz
+> Limit each adjustment to 100MHz for mt798x, and limit each adjustment to 50MHz for mt762x, and it's recommended to adjust the frequency step by step, e.g. from 1.6GHz to 1.7GHz, then to 1.8GHz.
 
 ARMPLL frequency range adjustment support for different platforms:
 
 | Version | mt7622 | mt7629 | mt7981 | mt7986 | mt7987 | mt7988 |
 | --- | --- | --- | --- | --- | --- | --- |
 | TF-A 2024 | No | No | 1.3GHz~1.8GHz | 1.6GHz~2.5GHz | No | No |
-| TF-A 2025 | 1.35GHz~1.7GHz | No | 1.3GHz~1.8GHz | 1.6GHz~2.5GHz | No | No |
+| TF-A 2025 | 1.35GHz~1.7GHz | 1.2GHz~1.5GHz | 1.3GHz~1.8GHz | 1.6GHz~2.5GHz | No | No |
 | TF-A 2026 | No | No | No | No | No | No |
 
 ### Other Options
